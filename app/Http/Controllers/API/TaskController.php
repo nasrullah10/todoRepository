@@ -632,67 +632,33 @@ class TaskController extends Controller
     public function filterTasks(Request $request)
     {
             
-            $date = $request->date;
-            $month = $request->month;
-            $user_id = $request->user_id;
-            $priority = $request->priority;
-            //$time = $request->time;
-           
-            $time = $request->start_time;
-            $newtime =  date("H:i:s", strtotime($time));
+        $date = $request->date;
             
-		        $filtertask = Task::select("*")
-    	        ->where('user_id','=',$user_id)
-    	        ->where('status','=',1)
-    	        //->whereDate('date','=', $date)
-    	        //->whereMonth('month','=', $month)
-    	        ->whereTime('start_time','=', $newtime)
-    	       //->WhereIn('priority', $priority)
-    	        ->get(); 
-		    
-            if(is_null($priority) && is_null($date)){
-                //return "null pri";
-                $filtertask = Task::select("*")
-                ->where('status','=',1)
-    	        ->where('user_id','=',$user_id)
-    	        ->whereMonth('date','=', $month)
-    	        ->orwhereNull('priority')
-    	        ->orwhereNull('date')
-    	        ->get(); 
-    	        
-            }else if(is_null($priority) && is_null($month)){
-                //return "null pri";
-                $filtertask = Task::select("*")
-    	        ->where('user_id','=',$user_id)
-    	        ->where('status','=',1)
-    	        ->whereDate('date','=', $date)
-    	        
-    	        ->get(); 
-    	        
-            }
-            else if(is_null($date) && is_null($month)){
-                
-                $filtertask = Task::select("*")
-    	        ->where('user_id','=',$user_id)
-    	        ->where('status','=',1)
-    	        ->WhereIn('priority', $priority)
-    	        ->get(); 
-    	        
-            }
-            else{
-                
-                $filtertask = Task::select("*")
-    	        ->where('user_id','=',$user_id)
-    	        ->where('status','=',1)
-    	        ->whereDate('date','=', $date)
-    	        ->whereMonth('month','=', $month)
-    	        //->orWhere('time', $request['time'])
-    	       ->WhereIn('priority', $priority)
-    	        ->get(); 
-    	        
-            }
-                 
-         return response()->json(['filtertask' => $filtertask]);
+        $month = $request->month;
+        $user_id = $request->user_id;
+        $priority = $request->priority;
+       
+        if(($priority && $date)){
+           
+            $date = Carbon::createFromFormat('d-n-Y', $date)
+                            ->format('Y-m-d');
+            $filtertask = Task::select("*")
+                           ->where('user_id','=',$user_id)
+                           ->where('status','=',1)
+                           ->where('date','=', $date)
+                           ->WhereIn('priority', $priority)
+                            ->get();
+        }
+        if($month){
+             $filtertask = Task::select("*")
+                           ->where('user_id','=',$user_id)
+                           ->where('status','=',1)
+                           ->where('month','=', $month)
+                           ->get();
+        }
+        
+             
+     return response()->json(['filtertask' => $filtertask]);
     }
     
     // single task
