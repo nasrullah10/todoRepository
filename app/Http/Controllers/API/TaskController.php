@@ -649,6 +649,24 @@ class TaskController extends Controller
                            ->WhereIn('priority', $priority)
                             ->get();
         }
+        if($priority){
+           
+            $filtertask = Task::select("*")
+                           ->where('user_id','=',$user_id)
+                           ->where('status','=',1)
+                           ->WhereIn('priority', $priority)
+                            ->get();
+        }
+        if($date){
+           
+            $date = Carbon::createFromFormat('d-n-Y', $date)
+                            ->format('Y-m-d');
+            $filtertask = Task::select("*")
+                           ->where('user_id','=',$user_id)
+                           ->where('status','=',1)
+                           ->where('date','=', $date)
+                            ->get();
+        }
         if($month){
              $filtertask = Task::select("*")
                            ->where('user_id','=',$user_id)
