@@ -16,12 +16,44 @@ use App\GroceryCategory;
 use App\GroceryList;
 use App\GroceryItem;
 use App\LogsDetails;
+use App\Achievement;
+use App\AchievementUser;
 use App\Event;
+use App\helpers;
 use DB;
 class TaskController extends Controller
 {
     public function test(){
-        return "test";
+        $a=helper::changeDateFormate(date('Y-m-d'),'m/d/Y');
+        return $a;
+        $json_data = array();
+        $json_data["title"] = "title";
+        $json_data["message"] = "Notification message.";
+        $data = json_encode($json_data);
+        //FCM API end-pointsu
+        $url = 'https://fcm.googleapis.com/fcm/send';
+        //api_key in Firebase Console -> Project Settings -> CLOUD MESSAGING -> Server key
+        $server_key = 'AAAA86biV8M:APA91bFxJF4PcuNG6aL8ukAL1QRSdy5_HIWt_kb5exsh4MCuWcNv5dEksVGg1-9UpLGZJqbsGzodrFhmBBKJS32NU1_x2GaKAGE8dxp6fv3hHChv3gQSOKXnbCM23kEJZHwRbjC9TLKB';
+        //header with content_type api key
+        $headers = array(
+            'Content-Type:application/json',
+            'Authorization:key='.$server_key
+        );
+        //CURL request to route notification to FCM connection server (provided by Google)
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        $result = curl_exec($ch);
+        if ($result === FALSE) {
+            die('Oops! FCM Send Error: ' . curl_error($ch));
+        }
+        curl_close($ch);
+        return response(['result'=>$result,'success' => true]);
     }
     
     // add task
@@ -107,7 +139,7 @@ class TaskController extends Controller
             //$task->repeat_description = $request->repeat_description;
             $task->start_date = $start_date;
             $task->start_time = $start_time;
-            $task->repeat_weaks = $request->repeat_weaks;
+            $task->repeat_weaks = $request->repeat_weeks;
             $task->repeat_day_name = $repeat_days;
             $task->repeat_months = $request->repeat_months;
             $task->date = $newDate;
@@ -180,21 +212,13 @@ class TaskController extends Controller
     // get over due date task
     public function overDueDateTask(Request $request)
     {
-        //date_default_timezone_set("Asia/Karachi");
-        //$todaytime = Carbon::now()->format('H:i:m');
-       //$time  = date("h:i A", strtotime($todaytime));
-       //return $todaytime;
-       //$time  = date("H:i:m", strtotime($todaytime));
-       //return $time;
-       //$date = date('Y-n-d');
+        
          $todayDate = Carbon::now()->format('Y-n-d');
          $todaytime = Carbon::now()->format('H:i:m');
          
-      // $overDueDateTask = DB::select("SELECT * FROM tasks WHERE time < '$time' and date <= '$date' and user_id = 77");
-       //return $todayDate;
         $overDueDateTask = Task::where('user_id','=',$request->user_id)
-                            ->where('date', '=', $todayDate)
-                            ->Where('time', '<', $todaytime)
+                            ->where('date', '>', $todayDate)
+                            //->Where('time', '<', $todaytime)
                             ->where('status','=','1')
                             ->get();
         
@@ -206,37 +230,37 @@ class TaskController extends Controller
     {
         $comment = Comment::create($request->all());
         
-        function sendGoogleCloudMessage( $data, $ids ) {
-            $apiKey = 'AAAA86biV8M:APA91bHyMc6JNF3mhwadXgDvwtVbmKNshqsdyumLb_LgQlVAzeSUKi_LkSQmx08MRVymC6Jdp6XbGmQ9pvziUeMkVgegEeIW8sQ3oUb0KlZOCp-FMI1gnCzldAgAg6HilzPYretRlEAG';
-            $url = 'https://android.googleapis.com/gcm/send';
-            $post = array(
-                            'registration_ids'  => $ids,
-                            'data'              => $data,
-                            );
-            $headers = array( 
-                                'Authorization: key=' . $apiKey,
-                                'Content-Type: application/json'
-                            );
-            $ch = curl_init();
-            curl_setopt( $ch, CURLOPT_URL, $url );
-            curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4 );
-            curl_setopt( $ch, CURLOPT_POST, true );
-            curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
-            curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-            curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $post ) );
-            $result = curl_exec( $ch );
-            if ( curl_errno( $ch ) ) {
-                $result = $result . 'GCM error: ' . curl_error( $ch );
-            }
-            curl_close( $ch );
-            return $result;
-        }
+        // function sendGoogleCloudMessage( $data, $ids ) {
+        //     $apiKey = 'AAAA86biV8M:APA91bHyMc6JNF3mhwadXgDvwtVbmKNshqsdyumLb_LgQlVAzeSUKi_LkSQmx08MRVymC6Jdp6XbGmQ9pvziUeMkVgegEeIW8sQ3oUb0KlZOCp-FMI1gnCzldAgAg6HilzPYretRlEAG';
+        //     $url = 'https://android.googleapis.com/gcm/send';
+        //     $post = array(
+        //                     'registration_ids'  => $ids,
+        //                     'data'              => $data,
+        //                 );
+        //     $headers = array( 
+        //                         'Authorization: key=' . $apiKey,
+        //                         'Content-Type: application/json'
+        //                     );
+        //     $ch = curl_init();
+        //     curl_setopt( $ch, CURLOPT_URL, $url );
+        //     curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4 );
+        //     curl_setopt( $ch, CURLOPT_POST, true );
+        //     curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
+        //     curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+        //     curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode( $post ) );
+        //     $result = curl_exec( $ch );
+        //     if ( curl_errno( $ch ) ) {
+        //         $result = $result . 'GCM error: ' . curl_error( $ch );
+        //     }
+        //     curl_close( $ch );
+        //     return $result;
+        // }
 
-        $response = array();
-        $response["title"] = "title";
-        $response["message"] = "Notification message.";
-        $data = array( 'response' =>  json_encode($response));
-        $result = sendGoogleCloudMessage($data, 1);
+        // $response = array();
+        // $response["title"] = "title";
+        // $response["message"] = "Notification message.";
+        // $data = array( 'response' =>  json_encode($response));
+        // $result = sendGoogleCloudMessage($data, 1);
             
         $logs = new LogsDetails();
         $logs->user_id = $request->user_id;
@@ -251,9 +275,8 @@ class TaskController extends Controller
     public function addGroceryCategory(Request $request)
     {
         
-        //$valueUp    = strtoupper($request->grocery_category_name);
-        $valueLower = strtolower($request->grocery_category_name);
-        
+       //$valueUp    = strtoupper($request->grocery_category_name);
+       $valueLower = strtolower($request->grocery_category_name);
        $GroceryCategory =  GroceryCategory::whereRaw('LOWER(grocery_category_name) like "%'.$valueLower.'%"')->count();
        
         if($GroceryCategory == 0){
@@ -264,16 +287,43 @@ class TaskController extends Controller
             
             return response([ 'message'=>'This Grocerry Category Already Exists','success' => false]);
         }
-        
         $logs = new LogsDetails();
         $logs->user_id = $request->user_id;
-        $logs->option_type = "Add Grocery";
+        $logs->option_type = "Add Grocery Category";
         $logs->option_name = "Grocery";
         $logs->device_id = $request->device_id;
         $logs->save();
        
     }
-    
+    // Update grocery category
+    public function updateGroceryCategory(Request $request)
+    {
+        
+       //$valueUp    = strtoupper($request->grocery_category_name);
+       $valueLower = strtolower($request->grocery_category_name);
+       $UpdateGroceryCategory =  GroceryCategory::whereRaw('LOWER(grocery_category_name) like "%'.$valueLower.'%"')->count();
+       
+        if($UpdateGroceryCategory == 0){
+            $UpdateGroceryCategory = GroceryCategory::where('grocery_category_id','=',$request->grocery_category_id)
+                                ->update([
+                                    'grocery_category_name'=>$request->grocery_category_name,
+                                    'grocery_list_id'=>$request->grocery_list_id,
+                                    
+                                    ]);
+             return response([ 'UpdateGroceryCategory'=> $UpdateGroceryCategory,'success' => true]);
+        }
+        else{
+            
+            return response([ 'message'=>'This Grocerry Category Already Exists','success' => false]);
+        }
+        $logs = new LogsDetails();
+        $logs->user_id = $request->user_id;
+        $logs->option_type = "Update Grocery Category";
+        $logs->option_name = "Grocery";
+        $logs->device_id = $request->device_id;
+        $logs->save();
+       
+    }
     // get all grocery categories
     public function getAllGroceryCategories(Request $request)
     {
@@ -281,7 +331,17 @@ class TaskController extends Controller
         
         return response([ 'getAllGroceryCategories'=> $getAllGroceryCategories,'success' => true]);
     }
-    
+    // Delete grocery categories
+    public function deleteGroceryCategory(Request $request)
+    {
+        
+        $deleteGroceryCategory = GroceryCategory::where('grocery_category_id','=',$request->grocery_category_id)
+                                ->update([
+                                    'status'=>2,
+                                    ]);
+        
+        return response([ 'getAllGroceryCategories'=> $deleteGroceryCategory,'success' => true]);
+    }
     // add grocery item
     public function addGroceryItem(Request $request)
     {
@@ -306,7 +366,24 @@ class TaskController extends Controller
         
         return response([ 'GroceryItem'=> $addGroceryItem,'success' => true]);
     }
-    
+    // delete grocery item
+    public function deleteGroceryItem(Request $request)
+    {
+        
+        $deleteGroceryList = GroceryItem::Where('grocery_item_id',$request->grocery_item_id)
+                            ->Where('user_id',$request->user_id)->update([
+                             'status' => 2
+                            ]);
+        
+        $logs = new LogsDetails();
+        $logs->user_id = $request->user_id;
+        $logs->option_type = "Delete Grocery Item";
+        $logs->option_name = "Grocery Item";
+        $logs->device_id = $request->device_id;
+        $logs->save();
+        
+        return response([ 'deleteGroceryList'=> $deleteGroceryList,'success' => true]);
+    }
     // add grocery list
     public function addGroceryList(Request $request)
     {
@@ -339,13 +416,7 @@ class TaskController extends Controller
         
         $todayDate = Carbon::now()->format('Y-m-d');
         $todaytime = Carbon::now()->format('H:i:m');
-        // $addGroceryList = new GroceryList;
-        // $addGroceryList->grocery_list_name = $request->grocery_list_name;
-        // $addGroceryList->user_id = $request->user_id;
-        // $addGroceryList->status = 1;
-        // $addGroceryList->date = $todayDate;
-        // $addGroceryList->time = $todaytime;
-        // $addGroceryList->save();
+        
         $updateGroceryList = GroceryList::where('grocery_list_id','=',$request->grocery_list_id)
                                 ->update([
                                     'grocery_list_name'=>$request->grocery_list_name,
@@ -381,24 +452,7 @@ class TaskController extends Controller
         return response([ 'deleteGroceryList'=> $deleteGroceryList,'success' => true]);
     }
     
-    // delete grocery item
-    public function deleteGroceryItem(Request $request)
-    {
-        
-        $deleteGroceryList = GroceryItem::Where('grocery_item_id',$request->grocery_item_id)
-                            ->Where('user_id',$request->user_id)->update([
-                             'status' => 2
-                            ]);
-        
-        $logs = new LogsDetails();
-        $logs->user_id = $request->user_id;
-        $logs->option_type = "Delete Grocery Item";
-        $logs->option_name = "Grocery Item";
-        $logs->device_id = $request->device_id;
-        $logs->save();
-        
-        return response([ 'deleteGroceryList'=> $deleteGroceryList,'success' => true]);
-    }
+    
     
     // delete grocery item
     public function deleteHabit(Request $request)
@@ -449,11 +503,7 @@ class TaskController extends Controller
     // get all grocery items
     public function getAllGroceryItems(Request $request)
     {
-        /*$ViewGroceryItem = GroceryItem::where('grocery_list_id',$request->grocery_list_id)
-                                        ->Where('status','=',1)
-                                        //->orderBy('date','DESC')
-                                        ->get();*/
-                            
+       
         $ViewGroceryItem = DB::table('grocery_items')
                             ->join('grocery_categories', 'grocery_categories.grocery_category_id', '=', 'grocery_items.grocery_category_id')
                             ->join('grocery_lists', 'grocery_lists.grocery_list_id', '=', 'grocery_items.grocery_list_id')
@@ -467,11 +517,7 @@ class TaskController extends Controller
     // get habit and details
     public function getHabitAndHabitDetails(Request $request)
     {
-        // $ViewGroceryItem = GroceryItem::where('grocery_list_id',$request->grocery_list_id)
-        //                                 ->Where('status','=',1)
-        //                                 //->orderBy('date','DESC')
-        //                                 ->get();
-                            
+       
         $getHabitAndHabitDetails = DB::table('habits')
             ->join('habit_details', 'habits.habit_id', '=', 'habit_details.habit_id')
             //->join('grocery_lists', 'grocery_lists.grocery_list_id', '=', 'grocery_items.grocery_list_id')
@@ -567,19 +613,9 @@ class TaskController extends Controller
     {
         
         $todaytime = Carbon::now()->format('H:i:m');
-        //$time  = date("g:i A", strtotime($todaytime));
-        //return $time;
-        //$expire = date("H:i", strtotime('+1 hour'));
-        //return $expire;
-        //$tasks = Task::find(161);
-        //return unserialize($tasks->repeat_day_name);
+      
         $project_id = $request->project_id;
-        // $tasks = Task::where('user_id', '=', $request->user_id)
-        //                 ->WhereDate('date', '>=', date('Y-n-d'))
-        //                 ->orderBy('date', 'DESC')
-        //                 //->Where('time', '>', $todaytime)
-        //                 ->where('status',1)
-        //                 ->get();
+       
         if (is_null($project_id) || is_null($request->section))
             {
                 $tasks = Task::where('user_id', '=', $request->user_id)
@@ -615,15 +651,47 @@ class TaskController extends Controller
         return response([ 'SubTasks'=> $getSubTasks,'success' => true]);
     }
     
+    // update sub task
+    
+    public function updateSubTask(Request $request)
+    {
+        $updateSubTask = SubTask::Where('sub_task_id',$request->sub_task_id)->update($request->all());
+        
+        $logs = new LogsDetails();
+        $logs->user_id = $request->user_id;
+        $logs->option_type = "Update Sub Task";
+        $logs->option_name = "Sub Task";
+        $logs->device_id = $request->device_id;
+        $logs->save();
+        
+        return response([ 'updateSubTask'=> $updateSubTask,'success' => true]);
+    }
+    // Delete Sub task
+    
+    public function deleteSubTask(Request $request)
+    {
+        $deleteSubTask = SubTask::Where('sub_task_id',$request->sub_task_id)->update(
+                            [
+                             'status' => 2
+                            ]
+            );
+        
+        $logs = new LogsDetails();
+        $logs->user_id = $request->user_id;
+        $logs->option_type = "Delete Sub Task";
+        $logs->option_name = "Sub Task";
+        $logs->device_id = $request->device_id;
+        $logs->save();
+        
+        return response([ 'deleteSubTask'=> $deleteSubTask,'success' => true]);
+    }
     // get today task
      public function getTodayTask(Request $request)
     {
         $todayDate = Carbon::now()->format('Y-n-d');
-        //return $todayDate;
         $user_id = $request->user_id;
         
-         $todaytime = Carbon::now()->format('H:i:m');
-        //return $todaytime;$to
+        $todaytime = Carbon::now()->format('H:i:m');
         $todayTask = Task::where('status','=',1)->where('user_id','=',$user_id)->where('date','=', $todayDate)->get();
         return response()->json(['todayTask' => $todayTask]);
     }
@@ -631,52 +699,52 @@ class TaskController extends Controller
     // filter task
     public function filterTasks(Request $request)
     {
+            $date = $request->date;
             
-        $date = $request->date;
+            $month = $request->month;
+            $user_id = $request->user_id;
+            $priority = $request->priority;
+           
+            if(($priority && $date)){
+               
+                $date = Carbon::createFromFormat('d-n-Y', $date)
+                                ->format('Y-m-d');
+                $filtertask = Task::select("*")
+                               ->where('user_id','=',$user_id)
+                               ->where('status','=',1)
+                               ->where('date','=', $date)
+                               ->WhereIn('priority', $priority)
+                                ->get();
+            }
+            if($priority){
+               
+                $filtertask = Task::select("*")
+                               ->where('user_id','=',$user_id)
+                               ->where('status','=',1)
+                               ->WhereIn('priority', $priority)
+                                ->get();
+            }
+            if($date){
+               
+                $date = Carbon::createFromFormat('d-n-Y', $date)
+                                ->format('Y-m-d');
+                $filtertask = Task::select("*")
+                               ->where('user_id','=',$user_id)
+                               ->where('status','=',1)
+                               ->where('date','=', $date)
+                                ->get();
+            }
+            if($month){
+                 $filtertask = Task::select("*")
+                               ->where('user_id','=',$user_id)
+                               ->where('status','=',1)
+                               ->where('month','=', $month)
+                               ->get();
+            }
             
-        $month = $request->month;
-        $user_id = $request->user_id;
-        $priority = $request->priority;
-       
-        if(($priority && $date)){
-           
-            $date = Carbon::createFromFormat('d-n-Y', $date)
-                            ->format('Y-m-d');
-            $filtertask = Task::select("*")
-                           ->where('user_id','=',$user_id)
-                           ->where('status','=',1)
-                           ->where('date','=', $date)
-                           ->WhereIn('priority', $priority)
-                            ->get();
-        }
-        if($priority){
-           
-            $filtertask = Task::select("*")
-                           ->where('user_id','=',$user_id)
-                           ->where('status','=',1)
-                           ->WhereIn('priority', $priority)
-                            ->get();
-        }
-        if($date){
-           
-            $date = Carbon::createFromFormat('d-n-Y', $date)
-                            ->format('Y-m-d');
-            $filtertask = Task::select("*")
-                           ->where('user_id','=',$user_id)
-                           ->where('status','=',1)
-                           ->where('date','=', $date)
-                            ->get();
-        }
-        if($month){
-             $filtertask = Task::select("*")
-                           ->where('user_id','=',$user_id)
-                           ->where('status','=',1)
-                           ->where('month','=', $month)
-                           ->get();
-        }
-        
-             
-     return response()->json(['filtertask' => $filtertask]);
+                 
+         return response()->json(['filtertask' => $filtertask]);
+            
     }
     
     // single task
@@ -813,7 +881,19 @@ class TaskController extends Controller
             $completeTask =  Task::where('task_id','=',$request->task_id)
                                 ->where('user_id','=',$request->user_id)
                                 ->update(['status' => 2]);
-                 $task_id = $request->task_id;
+            $task_id = $request->task_id;
+            
+            // $achievement =new Achievement();
+            // $achievement->name = "Task Achieved";
+            // $achievement->description = "Task Achieved By The User";
+            // $achievement->save();
+            
+            // $achievement_id = $achievement->achievement_id;
+            
+            // $AchievementUser = new AchievementUser();
+            // $AchievementUser->achievement_id   = $achievement_id ;
+            // $AchievementUser->user_id = $request->user_id;
+            // $AchievementUser->save();
         
     //     $levels = DB::table('tasks')->where('user_id', $request->user_id)->count();
         
@@ -846,7 +926,18 @@ class TaskController extends Controller
             return response()->json(['completeTask' =>$completeTask,'success' => true]);
     }
     
+    //achievements
     
+    public function achievements(Request $request)
+    {
+        $usersTotalTask = Task::where('user_id','=',$request->user_id)->count();
+        $usersCompletedTask = Task::where('status','=',2)->where('user_id','=',$request->user_id)->count();
+        
+         $achievementPercentage = round($usersCompletedTask*100/$usersTotalTask);
+         
+         
+        return response(['achievementPercentage'=> $achievementPercentage,'success' => true]);
+    }
     // add Habbit
     
     public function addHabbit(Request $request)
@@ -934,8 +1025,13 @@ class TaskController extends Controller
     }
     public function viewHabit(Request $request)
     {
-        $habit =  Habit::where('status','=',1)->get();
-            return response()->json(['habit' => $habit]);
+        $habitName = collect(Habit::where('status', 1)->get());
+
+        $habitNameUnique = $habitName->unique('habit_name');
+    
+        $habitNameUnique->values()->all();
+        //$habit =  Habit::where('status','=',1)->get();
+            return response()->json(['habit' => $habitNameUnique]);
     }
     
     public function addEvent(Request $request)
@@ -1055,7 +1151,6 @@ class TaskController extends Controller
     
     public function getCompletedTask(Request $request)
     {
-        
         $user_id = $request->user_id;
         $getCompletedTask = Task::where('status','=',2)->where('user_id','=',$user_id)->get();
         return response()->json(['getCompletedTask' => $getCompletedTask]);
