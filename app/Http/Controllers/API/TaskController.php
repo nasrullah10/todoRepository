@@ -19,43 +19,64 @@ use App\LogsDetails;
 use App\Achievement;
 use App\AchievementUser;
 use App\Event;
-use App\helpers;
+use App\Helper;
 use DB;
 class TaskController extends Controller
 {
-    public function test(){
-        $a=helper::changeDateFormate(date('Y-m-d'),'m/d/Y');
-        return $a;
-        $json_data = array();
-        $json_data["title"] = "title";
-        $json_data["message"] = "Notification message.";
-        $data = json_encode($json_data);
-        //FCM API end-pointsu
-        $url = 'https://fcm.googleapis.com/fcm/send';
-        //api_key in Firebase Console -> Project Settings -> CLOUD MESSAGING -> Server key
-        $server_key = 'AAAA86biV8M:APA91bFxJF4PcuNG6aL8ukAL1QRSdy5_HIWt_kb5exsh4MCuWcNv5dEksVGg1-9UpLGZJqbsGzodrFhmBBKJS32NU1_x2GaKAGE8dxp6fv3hHChv3gQSOKXnbCM23kEJZHwRbjC9TLKB';
-        //header with content_type api key
-        $headers = array(
-            'Content-Type:application/json',
-            'Authorization:key='.$server_key
-        );
-        //CURL request to route notification to FCM connection server (provided by Google)
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        $result = curl_exec($ch);
-        if ($result === FALSE) {
-            die('Oops! FCM Send Error: ' . curl_error($ch));
-        }
-        curl_close($ch);
-        return response(['result'=>$result,'success' => true]);
-    }
     
+    
+    
+    public function test(Request $request){
+                $title ="title";
+                $message="message one";
+                //$fcm_token = "c6Yif1-bzQg:APA91bHlV19vAtxkYH7QvOWVpMSpSS4cT5zzmVwehGPINAUW4O5txBlq-JWP7zRkIN3AJPBPbFnWzkowLb0OX9pfbDCJNlKhBGu3qIhiyo7SUWN5o4tAdHr1M6UImUn06kIM3zWHTa3o";
+                $a =Helper::sendPushNotification($title,$message);
+                return $a;
+    }
+    // expire Task Remaining 30 Minute
+    public function expireTaskRemaining30Minute(Request $request){
+       // $expireTaskRemaining30Minute = Task::where('user_id',$request->user_id)->get();
+        
+                
+                $todayDate = Carbon::now()->format('Y-n-d');
+                
+                $todaytime = Carbon::now()->format('h:i:s');
+               
+                 
+                 $tasks = Task::select('user_id','time','date','task_id')->where('user_id','=',$request->user_id)
+                                    ->where('date', '=', $todayDate)
+                                    ->where('status','=','1')
+                                    ->get();
+                                    
+                $currentDateTime = time();
+           
+                foreach($tasks as $value){
+                    $to_time = strtotime($value['date'].' '.$value['time']);
+                    //return $to_time;
+                    $from_time = strtotime(date("Y-n-d h:i:s"));
+                    $difMint = round(abs($to_time-$from_time) / 60);
+                    //  list($hour, $mint) = explode(':', $value['time']);
+                    //  list($cHour, $cMint) = explode(':', date('H:i'));
+                    //  $difMint =  ($hour * 60 + $mint) - ($cHour * 60 + $cMint);
+                    //  return $difMint;
+                     if($difMint == 30){
+                         return "ts";
+                            $title ="title";
+                            $message="message one";
+                            $a =Helper::sendPushNotification($title,$message);
+                     }
+                     
+                    // $time[]=$value['time'];
+                    // $date[]=$value['date'];
+                }  
+                
+                
+                
+                                   
+                //$a =Helper::sendPushNotification($title,$message);
+                
+        //return response([ 'expireTaskRemaining30Minute'=> $expireTaskRemaining30Minute,'success' => true]);
+    }
     // add task
     public function addTask(Request $request)
     {
@@ -705,43 +726,43 @@ class TaskController extends Controller
             $user_id = $request->user_id;
             $priority = $request->priority;
            
-            if(($priority && $date)){
-               
-                $date = Carbon::createFromFormat('d-n-Y', $date)
+		    if(($priority && $date)){
+		       
+		        $date = Carbon::createFromFormat('d-n-Y', $date)
                                 ->format('Y-m-d');
                 $filtertask = Task::select("*")
-                               ->where('user_id','=',$user_id)
-                               ->where('status','=',1)
-                               ->where('date','=', $date)
-                               ->WhereIn('priority', $priority)
-                                ->get();
-            }
-            if($priority){
-               
+                    	       ->where('user_id','=',$user_id)
+                    	       ->where('status','=',1)
+                    	       ->where('date','=', $date)
+                    	       ->WhereIn('priority', $priority)
+                    	        ->get();
+		    }
+		    if($priority){
+		       
                 $filtertask = Task::select("*")
-                               ->where('user_id','=',$user_id)
-                               ->where('status','=',1)
-                               ->WhereIn('priority', $priority)
-                                ->get();
-            }
-            if($date){
-               
-                $date = Carbon::createFromFormat('d-n-Y', $date)
+                    	       ->where('user_id','=',$user_id)
+                    	       ->where('status','=',1)
+                    	       ->WhereIn('priority', $priority)
+                    	        ->get();
+		    }
+		    if($date){
+		       
+		        $date = Carbon::createFromFormat('d-n-Y', $date)
                                 ->format('Y-m-d');
                 $filtertask = Task::select("*")
-                               ->where('user_id','=',$user_id)
-                               ->where('status','=',1)
-                               ->where('date','=', $date)
-                                ->get();
-            }
-            if($month){
-                 $filtertask = Task::select("*")
-                               ->where('user_id','=',$user_id)
-                               ->where('status','=',1)
-                               ->where('month','=', $month)
-                               ->get();
-            }
-            
+                    	       ->where('user_id','=',$user_id)
+                    	       ->where('status','=',1)
+                    	       ->where('date','=', $date)
+                    	        ->get();
+		    }
+		    if($month){
+		         $filtertask = Task::select("*")
+                    	       ->where('user_id','=',$user_id)
+                    	       ->where('status','=',1)
+                    	       ->where('month','=', $month)
+                    	       ->get();
+		    }
+		    
                  
          return response()->json(['filtertask' => $filtertask]);
             
