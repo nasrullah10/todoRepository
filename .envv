@@ -69,3 +69,6 @@ FB_REDIRECT=http://localhost:8000/facebook/callback
 
 MIX_PUSHER_APP_KEY="${PUSHER_APP_KEY}"
 MIX_PUSHER_APP_CLUSTER="${PUSHER_APP_CLUSTER}"
+
+
+Laravel-8-multi-auth-based-on-Roles-with-examples
