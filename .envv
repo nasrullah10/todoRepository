@@ -74,3 +74,52 @@ MIX_PUSHER_APP_CLUSTER="${PUSHER_APP_CLUSTER}"
 Laravel-8-multi-auth-based-on-Roles-with-examples
 
 https://github.com/DevAmirul/Laravel-Vue-SPA-Ecommerce
+
+public function handleProviderCallback($driver)
+    {
+   
+        try {
+            $user = Socialite::driver($driver)->user();
+        } catch (\Exception $e) {
+            return redirect()->route('login');
+        }
+
+        $existingUser = User::where('email', $user->getEmail())->first();
+
+        if ($existingUser) {
+            $newUser                    =  User::where('id',$existingUser->id)->first();
+            $newUser->provider_name     = $driver;
+            $newUser->password     = "tes";
+            $newUser->provider_id       = $user->getId();
+            $newUser->name              = $user->getName();
+            $newUser->email             = $user->getEmail();
+            // we set email_verified_at because the user's email is already veridied by social login portal
+            $newUser->email_verified_at = now();
+            // you can also get avatar, so create avatar column in database it you want to save profile image
+            $newUser->picture            = $user->getAvatar();
+            $newUser->save();
+            auth()->login($existingUser, true);
+        } else {
+            $newUser                    = new User;
+            $newUser->provider_name     = $driver;
+            $newUser->password     = "tes";
+            $newUser->provider_id       = $user->getId();
+            $newUser->name              = $user->getName();
+            $newUser->email             = $user->getEmail();
+            // we set email_verified_at because the user's email is already veridied by social login portal
+            $newUser->email_verified_at = now();
+            // you can also get avatar, so create avatar column in database it you want to save profile image
+            $newUser->picture            = $user->getAvatar();
+            $newUser->save();
+
+            auth()->login($newUser, true);
+            
+        }
+        return redirect()->route('user.dashboard');
+        // return redirect($this->redirectPath());
+    }
+
+    public function redirectToProvider($driver)
+    {
+        return Socialite::driver($driver)->redirect();
+    }
